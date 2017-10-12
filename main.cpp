@@ -14,19 +14,24 @@ struct node {
 	bool right;
 	bool up;
 	bool down;
+	bool forward;
+	bool backward;
 
-	int x, y;
-	node(int x, int y, bool left, bool right, bool up, bool down) {
+	int x, y, z;
+	node(int x, int y, int z, bool left, bool right, bool up, bool down, bool forward, bool backward) {
 		this->x = x;
 		this->y = y;
-		update(left, right, up, down);
+		this->z = z;
+		update(left, right, up, down, forward, backward);
 	}
 
-	void update(bool left, bool right, bool up, bool down) {
+	void update(bool left, bool right, bool up, bool down, bool forward, bool backward) {
 		this->left = left;
 		this->right = right;
 		this->up = up;
 		this->down = down;
+		this->forward = forward;
+		this->backward = backward;
 	}
 
 	bool getByDir(int dir){
@@ -35,6 +40,8 @@ struct node {
 			case 1: return up;
 			case 2: return right;
 			case 3: return down;
+			case 4: return forward;
+			case 5: return backward;
 		}
 	}
 
@@ -44,6 +51,8 @@ struct node {
 			case 1: up = value; return;
 			case 2: right = value; return;
 			case 3: down = value; return;
+			case 4: forward = value; return;
+			case 5: backward = value; return;
 		}
 	}
 
@@ -51,90 +60,117 @@ struct node {
 
 	std::string str() {
 		std::stringstream ss;
-		ss << x << " " << y << " " << left << " " << right << " " << up << " " << down;
+		ss << x << " " << y << " " << left << " " << right << " " << up << " " << down << " " << forward << " " + backward;
 		return ss.str();
 	}
 };
 
 bool operator==(const node& left, const node& right) {
-    return (left.x == right.x && left.y == right.y);
+    return (left.x == right.x && left.y == right.y && left.z == right.z);
 }
 
-typedef std::vector<std::vector<node> > nodes_t;
+typedef std::vector<std::vector<std::vector<node> > > nodes_t;
 
 void print(nodes_t& nodes) {
 	for(int i = 0; i < nodes.size(); i++) {
-		for(int j = 0; j < nodes.size(); j++) {
-			printf("%d %d %d %d\n", nodes[i][j].left, nodes[i][j].right, nodes[i][j].up, nodes[i][j].down);
+		for(int j = 0; j < nodes[0].size(); j++) {
+			for(int k = 0; k < nodes[0][0].size(); k++) {
+				printf("%d %d %d %d %d %d\n", nodes[i][j][k].left, nodes[i][j][k].right, nodes[i][j][k].up,
+				 nodes[i][j][k].down, nodes[i][j][k].forward, nodes[i][j][k].backward);
+			}
 		}
 	}
 	printf("\n");
 }
 static bool isPathFound;
 static std::vector<int> path;
-static int lastSuccessfull = 0;
 
 bool isPathExists(nodes_t &nodes, std::vector<node> & startVertexes, int index) {
-	int size = nodes.size();
+	int sizeX = nodes.size();
+	int sizeY = nodes[0].size();
+	int sizeZ = nodes[0][0].size();
+
 	if(!isPathFound) {
-		if(index == size) return false;
+		if(index == startVertexes.size())  {
+			return false;
+		}
 		node tmp = startVertexes[index];
-		node start = nodes[tmp.x][tmp.y];
+		node start = nodes[tmp.x][tmp.y][tmp.z];
 		std::queue<node> q;
 		q.push(start);
-		std::vector<int> used(size * size + 1, 1);
-		std::vector<int> parent(size * size + 1);
+		std::vector<int> used(sizeX * sizeY * sizeZ + 1, 1);
+		std::vector<int> parent(sizeX * sizeY * sizeZ + 1);
 		path.clear();
-		parent[start.x * size + start.y] = -1;
-		used[start.x * size + start.y] = 0;
+		parent[start.z * sizeX * sizeY + start.x * sizeY + start.y] = -1;
+		used[start.z * sizeX * sizeY + start.x * sizeY + start.y] = 0;
 		while(q.size()) {
 			node cur = q.front();
 			q.pop();
 			int x = cur.x;
 			int y = cur.y;
-			if(y == size - 1) {
-				for(int v = x * size + y;  v != -1; v = parent[v]) {
+			int z = cur.z;
+			if(y == sizeY - 1) {
+				for(int v = z * sizeX * sizeY + x * sizeY + y;  v != -1; v = parent[v]) {
 					path.push_back(v);
 				}
 				reverse(path.begin(), path.end());
+				// for(int i = 0; i < path.size(); i++) {
+				// 	std::cout << path[i] << " ";
+				// }
+				// std::cout << std::endl;
 				isPathFound = true;
-				lastSuccessfull = index;
 				return true;
 			}
-			if(cur.left && y - 1 >= 0 && used[x * size + y - 1] == 1) {
-				q.push(nodes[x][y - 1]);
-				used[x* size + y - 1] = 0;
-				parent[x* size + y - 1] = x * size + y;
+			if(cur.left && y - 1 >= 0 && used[z * sizeX * sizeY + x * sizeY + y - 1] == 1) {
+				q.push(nodes[x][y - 1][z]);
+				used[z * sizeX * sizeY + x * sizeY + y - 1] = 0;
+				parent[z * sizeX * sizeY + x * sizeY + y - 1] = z * sizeX * sizeY + x * sizeY + y;
 			}
 
-			if(cur.up && x - 1 >= 0 && used[(x - 1) * size + y] == 1) {
-				q.push(nodes[x - 1][y]);
-				used[(x - 1) * size + y] = 0;
-				parent[(x - 1) * size + y] = x * size + y;
+			if(cur.up && x - 1 >= 0 && used[z * sizeX * sizeY + (x - 1) * sizeY + y] == 1) {
+				q.push(nodes[x - 1][y][z]);
+				used[z * sizeX * sizeY + (x - 1) * sizeY + y] = 0;
+				parent[z * sizeX * sizeY + (x - 1) * sizeY + y] = z * sizeX * sizeY + x * sizeY + y;
 			}
 
-			if(cur.down && x + 1 < size && used[(x + 1) * size + y] == 1) {
-				q.push(nodes[x + 1][y]);
-				used[(x + 1) * size + y] = 0;
-				parent[(x + 1) * size + y] = x * size + y;
+			if(cur.down && x + 1 < sizeX && used[z * sizeX * sizeY + (x + 1) * sizeY + y] == 1) {
+				q.push(nodes[x + 1][y][z]);
+				used[z * sizeX * sizeY + (x + 1) * sizeY + y] = 0;
+				parent[z * sizeX * sizeY + (x + 1) * sizeY + y] = z * sizeX * sizeY + x * sizeY + y;
 			}
 			
-			if(cur.right && y + 1 < size && used[x * size + y + 1] == 1) {
-				q.push(nodes[x][y + 1]);
-				used[x* size + y + 1] = 0;
-				parent[x * size + y + 1] = x * size + y;
+			if(cur.right && y + 1 < sizeY && used[z * sizeX * sizeY + x * sizeY + y + 1] == 1) {
+				q.push(nodes[x][y + 1][z]);
+				used[z * sizeX * sizeY + x * sizeY + y + 1] = 0;
+				parent[z * sizeX * sizeY + x * sizeY + y + 1] = z * sizeX * sizeY + x * sizeY + y;
+			}
+
+			if(cur.forward && z + 1 < sizeZ && used[(z + 1) * sizeX * sizeY + x * sizeY + y] == 1) {
+				q.push(nodes[x][y][z + 1]);
+				used[(z + 1) * sizeX * sizeY + x * sizeY + y] = 0;
+				parent[(z + 1) * sizeX * sizeY + x * sizeY + y] = z * sizeX * sizeY + x * sizeY + y;
+			}
+
+			if(cur.backward && z - 1 >= 0 && used[(z - 1) * sizeX * sizeY + x * sizeY + y] == 1) {
+				q.push(nodes[x][y][z - 1]);
+				used[(z - 1) * sizeX * sizeY + x * sizeY + y] = 0;
+				parent[(z - 1) * sizeX * sizeY + x * sizeY + y] = z * sizeX * sizeY + x * sizeY + y;
 			}
 		}
 		
 		return isPathExists(nodes, startVertexes, index + 1);	
 	} else {
 		for(int i = 0; i < path.size() - 1; i++) {
-			int x = path[i] / size;
-			int y = path[i] % size;
+			int y = path[i] % sizeY;
+			int z = path[i] / (sizeX * sizeY);
+			int x = (path[i] - z * sizeX * sizeY - y) / sizeY;
 
-			int x1 = path[i + 1] / size;
-			int y1 = path[i + 1] % size;
+			int y1 = path[i + 1] % sizeY;
+			int z1 = path[i + 1] / (sizeX * sizeY);
+			int x1 = (path[i + 1] - z1 * sizeX * sizeY - y1) / sizeY;
+			// std::cout << path[i + 1] << " " << x1 << " " << y1 << " " << z1 << std::endl;
 
+			int dz = z - z1;
 			int dx = x - x1;
 			int dy = y - y1;
 			int dir;
@@ -146,11 +182,16 @@ bool isPathExists(nodes_t &nodes, std::vector<node> & startVertexes, int index) 
 				dir = 0;
 			if(dy == -1) // right
 				dir = 2;
+			if(dz == 1) // backward
+				dir = 5;
+			if(dz == -1) // forward
+				dir = 4;
 
-			int check = nodes[x][y].getByDir(dir);
+			int check = nodes[x][y][z].getByDir(dir);
 			if(!check) {
+				// std::cout << "fail to step\n";
 				isPathFound = false;
-				return isPathExists(nodes, startVertexes, lastSuccessfull);
+				return isPathExists(nodes, startVertexes, 0);
 			}
 		}
 
@@ -158,30 +199,42 @@ bool isPathExists(nodes_t &nodes, std::vector<node> & startVertexes, int index) 
 	}
 }
 
-void removeEdge(nodes_t& nodes, int x, int y, int dir) {
-	nodes[x][y].setByDir(dir, false);
-	int size = nodes.size();
-	if(dir == 0 && y > 0) nodes[x][y - 1].setByDir(2, false);
-	if(dir == 1 && x > 0) nodes[x - 1][y].setByDir(3, false);
-	if(dir == 2 && y < size - 1) nodes[x][y + 1].setByDir(0, false);
-	if(dir == 3 && x < size - 1) nodes[x + 1][y].setByDir(1, false);
+void removeEdge(nodes_t& nodes, int x, int y, int z, int dir) {
+	nodes[x][y][z].setByDir(dir, false);
+	int sizeX = nodes.size();
+	int sizeY = nodes[0].size();
+	int sizeZ = nodes[0][0].size();
+	if(dir == 0 && y > 0) nodes[x][y - 1][z].setByDir(2, false);
+	if(dir == 1 && x > 0) nodes[x - 1][y][z].setByDir(3, false);
+	if(dir == 2 && y < sizeY - 1) nodes[x][y + 1][z].setByDir(0, false);
+	if(dir == 3 && x < sizeX - 1) nodes[x + 1][y][z].setByDir(1, false);
+	if(dir == 4 && z < sizeZ - 1) nodes[x][y][z + 1].setByDir(5, false);
+	if(dir == 5 && z > 0) nodes[x][y][z - 1].setByDir(4, false);
 }
 
-void removeNode(nodes_t& nodes, int x, int y) {
-	for(int dir = 0; dir < nodes.size(); dir++) {
-		removeEdge(nodes, x, y, dir);
+void removeNode(nodes_t& nodes, int x, int y, int z) {
+	int size = nodes.size();
+	// std::cout << "remove node " << z * size * size + x * size + y << std::endl; 
+	for(int dir = 0; dir < 6; dir++) {
+		removeEdge(nodes, x, y, z, dir);
 	}
 }
 
 void resetData(int size, nodes_t& nodes) {
-	for(int i = 0; i < size; i++) {
-		for(int j = 0; j < size; j++) {
-			bool left = j - 1 >= 0;
-			bool right = j < size - 1;
-			bool up = i - 1 >= 0;
-			bool down = i < size - 1;
-
-			nodes[i][j].update(left, right, up, down);
+	int sizeX = nodes.size();
+	int sizeY = nodes[0].size();
+	int sizeZ = nodes[0][0].size();
+	for(int i = 0; i < sizeX; i++) {
+		for(int j = 0; j < sizeY; j++) {
+			for(int k = 0; k < sizeZ; k++) {
+				bool left = j - 1 >= 0;
+				bool right = j < sizeY - 1;
+				bool up = i - 1 >= 0;
+				bool down = i < sizeX - 1;
+				bool forward = k < sizeZ - 1;
+				bool backward = k - 1 >= 0;
+				nodes[i][j][k].update(left, right, up, down, forward, backward);
+			}
 		}
 	}
 }
@@ -190,45 +243,56 @@ int main()
 {
 	nodes_t data;
 	int size;
-	int maxSize = 51;
-	int minSize = 50;
+	int sizeZ = 1;
+	int maxSize = 50;
+	int minSize = 2;
 	int repeats = 100;
 	for(int k = minSize; k < maxSize; k += 1) {
 		size = k;
+		// sizeZ = k;
 		srand (time(NULL));
 		data.clear();
 
 		for(int i = 0; i < size; i++) {
-			std::vector<node> tmp;
+			std::vector<std::vector<node> > row;
 			for(int j = 0; j < size; j++) {
-				bool left = j - 1 >= 0;
-				bool right = j < size - 1;
-				bool up = i - 1 >= 0;
-				bool down = i < size - 1;
-
-				tmp.push_back(node(i, j, left, right, up, down));
+				std::vector<node> tmp;
+				for(int k = 0; k < sizeZ; k++) {
+					bool left = j - 1 >= 0;
+					bool right = j < size - 1;
+					bool up = i - 1 >= 0;
+					bool down = i < size - 1;
+					bool forward = k < sizeZ - 1;
+					bool backward = k - 1 >= 0;
+					tmp.push_back(node(i, j, k, left, right, up, down, forward, backward));
+				}
+				row.push_back(tmp);
 			}
-			data.push_back(tmp);
+			data.push_back(row);
 		}
-
 		std::vector<node> startVertexes;
-		for(int i = 0; i < size; i++) {
-			startVertexes.push_back(data[i][0]);
+		for(int j = 0; j < sizeZ; j++){
+			for(int i = 0; i < size; i++) {
+				startVertexes.push_back(data[i][0][j]);
+			}
 		}
 		std::vector<int> results;
 		int count = 0;
 		for(int i = 0; i < repeats; i++) {			
-			lastSuccessfull = 0;
-			while(isPathExists(data, startVertexes, lastSuccessfull)) {
+
+			while(isPathExists(data, startVertexes, 0)) {
 				count++;
 				while(1) {
 					int x = rand() % size; // 0..size-1
 					int y = rand() % size; // 0..size-1
-					if(data[x][y].left || data[x][y].right || data[x][y].up || data[x][y].down) {
-						removeNode(data, x, y);
+					int z = rand() % sizeZ; // 0..size-1
+					if(data[x][y][z].left || data[x][y][z].right || data[x][y][z].up || data[x][y][z].down ||
+						data[x][y][z].forward || data[x][y][z].backward) {
+						removeNode(data, x, y, z);
 						break;
 					}
 				}
+
 			}
 			results.push_back(count);
 			count = 0;
@@ -239,7 +303,7 @@ int main()
 			sum += results[i];
 		}
 
-		std::cout <<  "(" << size << ";" << (1.0 - (double)(sum / results.size()) / (double)(size * size)) << ") ";
+		std::cout <<  "(" << size << ";" << (1.0 - (double)(sum / results.size()) / (double)(size * size * sizeZ)) << ") ";
 	}
 	return 0;
 }
