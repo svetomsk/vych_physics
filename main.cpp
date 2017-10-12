@@ -72,10 +72,14 @@ void print(nodes_t& nodes) {
 }
 static bool isPathFound;
 static std::vector<int> path;
+static int lastSuccessfull = 0;
 
-bool isPathExists(nodes_t &nodes, node& start) {
+bool isPathExists(nodes_t &nodes, std::vector<node> & startVertexes, int index) {
 	int size = nodes.size();
 	if(!isPathFound) {
+		if(index == size) return false;
+		node tmp = startVertexes[index];
+		node start = nodes[tmp.x][tmp.y];
 		std::queue<node> q;
 		q.push(start);
 		std::vector<int> used(size * size + 1, 1);
@@ -94,6 +98,7 @@ bool isPathExists(nodes_t &nodes, node& start) {
 				}
 				reverse(path.begin(), path.end());
 				isPathFound = true;
+				lastSuccessfull = index;
 				return true;
 			}
 			if(cur.left && y - 1 >= 0 && used[x * size + y - 1] == 1) {
@@ -120,10 +125,8 @@ bool isPathExists(nodes_t &nodes, node& start) {
 				parent[x * size + y + 1] = x * size + y;
 			}
 		}
-		if(start.x < size - 1) {
-			return isPathExists(nodes, nodes[start.x + 1][0]);
-		}
-		return false;
+		
+		return isPathExists(nodes, startVertexes, index + 1);	
 	} else {
 		for(int i = 0; i < path.size() - 1; i++) {
 			int x = path[i] / size;
@@ -147,7 +150,7 @@ bool isPathExists(nodes_t &nodes, node& start) {
 			int check = nodes[x][y].getByDir(dir);
 			if(!check) {
 				isPathFound = false;
-				return isPathExists(nodes, start);
+				return isPathExists(nodes, startVertexes, lastSuccessfull);
 			}
 		}
 
@@ -187,13 +190,14 @@ int main()
 {
 	nodes_t data;
 	int size;
-	int maxSize = 50;
-	int minSize = 3;
-	int repeats = 300;
+	int maxSize = 51;
+	int minSize = 50;
+	int repeats = 100;
 	for(int k = minSize; k < maxSize; k += 1) {
+		size = k;
 		srand (time(NULL));
 		data.clear();
-		size = k;
+
 		for(int i = 0; i < size; i++) {
 			std::vector<node> tmp;
 			for(int j = 0; j < size; j++) {
@@ -207,10 +211,15 @@ int main()
 			data.push_back(tmp);
 		}
 
+		std::vector<node> startVertexes;
+		for(int i = 0; i < size; i++) {
+			startVertexes.push_back(data[i][0]);
+		}
 		std::vector<int> results;
 		int count = 0;
-		for(int i = 0; i < repeats; i++) {
-			while(isPathExists(data, data[0][0])) {
+		for(int i = 0; i < repeats; i++) {			
+			lastSuccessfull = 0;
+			while(isPathExists(data, startVertexes, lastSuccessfull)) {
 				count++;
 				while(1) {
 					int x = rand() % size; // 0..size-1
@@ -223,14 +232,13 @@ int main()
 			}
 			results.push_back(count);
 			count = 0;
-			resetData(size, data);
+			resetData(size, data);			
 		}
 		int sum = 0;
 		for(int i = 0; i < results.size(); i++) {
 			sum += results[i];
 		}
 
-		// std::cout << sum / results.size();
 		std::cout <<  "(" << size << ";" << (1.0 - (double)(sum / results.size()) / (double)(size * size)) << ") ";
 	}
 	return 0;
