@@ -10,26 +10,26 @@
 #include <iostream>
 
 struct node {
-	int left;
-	int right;
-	int up;
-	int down;
+	bool left;
+	bool right;
+	bool up;
+	bool down;
 
 	int x, y;
-	node(int x, int y, int left, int right, int up, int down) {
+	node(int x, int y, bool left, bool right, bool up, bool down) {
 		this->x = x;
 		this->y = y;
 		update(left, right, up, down);
 	}
 
-	void update(int left, int right, int up, int down) {
+	void update(bool left, bool right, bool up, bool down) {
 		this->left = left;
 		this->right = right;
 		this->up = up;
 		this->down = down;
 	}
 
-	int getByDir(int dir){
+	bool getByDir(int dir){
 		switch(dir) {
 			case 0: return left;
 			case 1: return up;
@@ -38,7 +38,7 @@ struct node {
 		}
 	}
 
-	void setByDir(int dir, int value) {
+	void setByDir(int dir, bool value) {
 		switch(dir) {
 			case 0: left = value; return;
 			case 1: up = value; return;
@@ -61,6 +61,7 @@ bool operator==(const node& left, const node& right) {
 }
 
 typedef std::vector<std::vector<node> > nodes_t;
+
 void print(nodes_t& nodes) {
 	for(int i = 0; i < nodes.size(); i++) {
 		for(int j = 0; j < nodes.size(); j++) {
@@ -72,7 +73,7 @@ void print(nodes_t& nodes) {
 static bool isPathFound;
 static std::vector<int> path;
 
-bool isPathExists(nodes_t &nodes, node& start, node& finish) {
+bool isPathExists(nodes_t &nodes, node& start) {
 	int size = nodes.size();
 	if(!isPathFound) {
 		std::queue<node> q;
@@ -87,40 +88,40 @@ bool isPathExists(nodes_t &nodes, node& start, node& finish) {
 			q.pop();
 			int x = cur.x;
 			int y = cur.y;
-			// for(int i = 0; i < size; i++) {
-				if(y == size - 1) {
-					for(int v = x * size + y;  v != -1; v = parent[v]) {
-						path.push_back(v);
-					}
-					reverse(path.begin(), path.end());
-					isPathFound = true;
-					return true;
+			if(y == size - 1) {
+				for(int v = x * size + y;  v != -1; v = parent[v]) {
+					path.push_back(v);
 				}
-			// }
-			if(cur.left >= 0 && y - 1 >= 0 && used[x * size + y - 1] == 1) {
+				reverse(path.begin(), path.end());
+				isPathFound = true;
+				return true;
+			}
+			if(cur.left && y - 1 >= 0 && used[x * size + y - 1] == 1) {
 				q.push(nodes[x][y - 1]);
 				used[x* size + y - 1] = 0;
 				parent[x* size + y - 1] = x * size + y;
 			}
-			if(cur.up >= 0 && x - 1 >= 0 && used[(x - 1) * size + y] == 1) {
+
+			if(cur.up && x - 1 >= 0 && used[(x - 1) * size + y] == 1) {
 				q.push(nodes[x - 1][y]);
 				used[(x - 1) * size + y] = 0;
 				parent[(x - 1) * size + y] = x * size + y;
 			}
-			if(cur.down >= 0 && x + 1 < size && used[(x + 1) * size + y] == 1) {
+
+			if(cur.down && x + 1 < size && used[(x + 1) * size + y] == 1) {
 				q.push(nodes[x + 1][y]);
 				used[(x + 1) * size + y] = 0;
 				parent[(x + 1) * size + y] = x * size + y;
 			}
 			
-			if(cur.right >= 0 && y + 1 < size && used[x * size + y + 1] == 1) {
+			if(cur.right && y + 1 < size && used[x * size + y + 1] == 1) {
 				q.push(nodes[x][y + 1]);
 				used[x* size + y + 1] = 0;
 				parent[x * size + y + 1] = x * size + y;
 			}
 		}
 		if(start.x < size - 1) {
-			return isPathExists(nodes, nodes[start.x + 1][0], finish);
+			return isPathExists(nodes, nodes[start.x + 1][0]);
 		}
 		return false;
 	} else {
@@ -144,9 +145,9 @@ bool isPathExists(nodes_t &nodes, node& start, node& finish) {
 				dir = 2;
 
 			int check = nodes[x][y].getByDir(dir);
-			if(check == -1) {
+			if(!check) {
 				isPathFound = false;
-				return isPathExists(nodes, start, finish);
+				return isPathExists(nodes, start);
 			}
 		}
 
@@ -155,12 +156,12 @@ bool isPathExists(nodes_t &nodes, node& start, node& finish) {
 }
 
 void removeEdge(nodes_t& nodes, int x, int y, int dir) {
-	nodes[x][y].setByDir(dir, -1);
+	nodes[x][y].setByDir(dir, false);
 	int size = nodes.size();
-	if(dir == 0 && y > 0) nodes[x][y - 1].setByDir(2, -1);
-	if(dir == 1 && x > 0) nodes[x - 1][y].setByDir(3, -1);
-	if(dir == 2 && y < size - 1) nodes[x][y + 1].setByDir(0, -1);
-	if(dir == 3 && x < size - 1) nodes[x + 1][y].setByDir(1, -1);
+	if(dir == 0 && y > 0) nodes[x][y - 1].setByDir(2, false);
+	if(dir == 1 && x > 0) nodes[x - 1][y].setByDir(3, false);
+	if(dir == 2 && y < size - 1) nodes[x][y + 1].setByDir(0, false);
+	if(dir == 3 && x < size - 1) nodes[x + 1][y].setByDir(1, false);
 }
 
 void removeNode(nodes_t& nodes, int x, int y) {
@@ -172,10 +173,10 @@ void removeNode(nodes_t& nodes, int x, int y) {
 void resetData(int size, nodes_t& nodes) {
 	for(int i = 0; i < size; i++) {
 		for(int j = 0; j < size; j++) {
-			int left = j - 1;
-			int right = (j < size - 1) ? j + 1 : -1;
-			int up = i - 1;
-			int down = (i < size - 1) ? i + 1 : -1;
+			bool left = j - 1 >= 0;
+			bool right = j < size - 1;
+			bool up = i - 1 >= 0;
+			bool down = i < size - 1;
 
 			nodes[i][j].update(left, right, up, down);
 		}
@@ -185,46 +186,52 @@ void resetData(int size, nodes_t& nodes) {
 int main() 
 {
 	nodes_t data;
-	int size = 200;
+	int size;
+	int maxSize = 50;
+	int minSize = 3;
+	int repeats = 300;
+	for(int k = minSize; k < maxSize; k += 1) {
+		srand (time(NULL));
+		data.clear();
+		size = k;
+		for(int i = 0; i < size; i++) {
+			std::vector<node> tmp;
+			for(int j = 0; j < size; j++) {
+				bool left = j - 1 >= 0;
+				bool right = j < size - 1;
+				bool up = i - 1 >= 0;
+				bool down = i < size - 1;
 
-	for(int i = 0; i < size; i++) {
-		std::vector<node> tmp;
-		for(int j = 0; j < size; j++) {
-			int left = j - 1;
-			int right = (j < size - 1) ? j + 1 : -1;
-			int up = i - 1;
-			int down = (i < size - 1) ? i + 1 : -1;
-
-			tmp.push_back(node(i, j, left, right, up, down));
+				tmp.push_back(node(i, j, left, right, up, down));
+			}
+			data.push_back(tmp);
 		}
-		data.push_back(tmp);
-	}
-	int count = 0;
-	srand (time(NULL));
-	std::vector<int> results;
-	for(int i = 0; i < 100; i++) {
-		while(isPathExists(data, data[0][0], data[size - 1][size - 1])) {
-			count++;
-			while(1) {
-				int x = rand() % size; // 0..size-1
-				int y = rand() % size; // 0..size-1
-				// int dir = rand() % 4; // 0..3
-				// int check = data[x][y].getByDir(dir);
-				if(data[x][y].left + data[x][y].right + data[x][y].up + data[x][y].down > 1) {
-					removeNode(data, x, y);
-					break;
+
+		std::vector<int> results;
+		int count = 0;
+		for(int i = 0; i < repeats; i++) {
+			while(isPathExists(data, data[0][0])) {
+				count++;
+				while(1) {
+					int x = rand() % size; // 0..size-1
+					int y = rand() % size; // 0..size-1
+					if(data[x][y].left || data[x][y].right || data[x][y].up || data[x][y].down) {
+						removeNode(data, x, y);
+						break;
+					}
 				}
 			}
+			results.push_back(count);
+			count = 0;
+			resetData(size, data);
 		}
-		results.push_back(count);
-		count = 0;
-		resetData(size, data);
-	}
-	int sum = 0;
-	for(int i = 0; i < results.size(); i++) {
-		sum += results[i];
-	}
+		int sum = 0;
+		for(int i = 0; i < results.size(); i++) {
+			sum += results[i];
+		}
 
-	printf("%d\n", sum / results.size());
+		// std::cout << sum / results.size();
+		std::cout <<  "(" << size << ";" << (1.0 - (double)(sum / results.size()) / (double)(size * size)) << ") ";
+	}
 	return 0;
 }
