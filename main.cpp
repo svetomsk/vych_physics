@@ -85,6 +85,7 @@ void print(nodes_t& nodes) {
 }
 static bool isPathFound;
 static std::vector<int> path;
+static int bfsCount = 0;
 
 
 bool isPathExists(nodes_t &nodes, std::vector<node> & startVertexes, int index) {
@@ -93,6 +94,7 @@ bool isPathExists(nodes_t &nodes, std::vector<node> & startVertexes, int index) 
 	int sizeZ = nodes[0][0].size();
 
 	if(!isPathFound) {
+		bfsCount++;
 		if(index == startVertexes.size())  {
 			return false;
 		}
@@ -244,17 +246,21 @@ int main()
 	nodes_t data;
 	int size;
 	bool mode3D = false;
+	bool modeEdge = false;
+
 	int sizeZ = 1;
-	int maxSize = 150;
+	int maxSize = 70;
 	int minSize = 2;
 	int step = 2;
 
 	int minRepeats = 25;
-	int maxRepeats = 26;
-	int repStep = 25;
+	int maxRepeats = minRepeats + 3;
+	int repStep = 1;
 
 	std::ofstream file;
 	file.open("output.txt");
+
+	std::vector<double> disp;
 	for(int r = minRepeats; r < maxRepeats; r+=repStep) {
 		for(int k = minSize; k < maxSize; k += step) {
 			size = k;
@@ -289,8 +295,6 @@ int main()
 			std::vector<int> results;
 			int count = 0;
 
-
-
 			for(int i = 0; i < r; i++) {			
 
 				while(isPathExists(data, startVertexes, 0)) {
@@ -301,12 +305,23 @@ int main()
 						int z = rand() % sizeZ; // 0..size-1
 						if(data[x][y][z].left || data[x][y][z].right || data[x][y][z].up || data[x][y][z].down ||
 							data[x][y][z].forward || data[x][y][z].backward) {
-							removeNode(data, x, y, z);
-							break;
+							if(!modeEdge) {
+								removeNode(data, x, y, z);
+								break;
+							}
+							else {
+								int dir = rand() % 6;
+								if(data[x][y][z].getByDir(dir)) {
+									// std::cout << x << " " << y << " " << z << " " << data[x][y][z].getByDir(dir) << " " << dir << "\n";
+									removeEdge(data, x, y, z, dir);
+									break;
+								}
+							}
 						}
 					}
 
 				}
+
 				results.push_back(count);
 				count = 0;
 				resetData(size, data);			
@@ -315,14 +330,28 @@ int main()
 			for(int i = 0; i < results.size(); i++) {
 				sum += results[i];
 			}
-
-			// printf("(%d;%d)", size, (1.0 - (double)(sum / results.size()) / (double)(size * size * sizeZ)));
-			double value = (1.0 - (double)(sum / results.size()) / (double)(size * size * sizeZ));
+			// std::cout << sum << " " << (sum / results.size()) << " " << 2 * size * (size - 1) << std::endl;
+			double value;
+			double average = sum / results.size();
+			if(!modeEdge)
+				value = 1.0 - average / (double)(size * size * sizeZ);
+			else {
+				value = 1.0 - average / (double)(2.0 * (size - 1) * size);
+			}
+			double curDisp = 0;
+			for(int i = 0; i < results.size(); i++) {
+				double cur = (1.0 - results[i] / (double)(size * size * sizeZ));
+				curDisp += (cur - value) * (cur - value);
+			}			
+			curDisp /= results.size();
+			disp.push_back(curDisp);
 			// file <<  "(" << size << ";" << value << ") ";
 			file << size << " " << value << "\n";
+			// file << size << " " << curDisp << "\n";
 		}
 		file << "---\n";
 	}
+	// file << "---\n";
 	file.close();		
 	return 0;
 }
