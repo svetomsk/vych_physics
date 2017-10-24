@@ -8,6 +8,7 @@
 #include <time.h>
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 
 struct node {
 	bool left;
@@ -84,6 +85,7 @@ void print(nodes_t& nodes) {
 }
 static bool isPathFound;
 static std::vector<int> path;
+
 
 bool isPathExists(nodes_t &nodes, std::vector<node> & startVertexes, int index) {
 	int sizeX = nodes.size();
@@ -168,7 +170,6 @@ bool isPathExists(nodes_t &nodes, std::vector<node> & startVertexes, int index) 
 			int y1 = path[i + 1] % sizeY;
 			int z1 = path[i + 1] / (sizeX * sizeY);
 			int x1 = (path[i + 1] - z1 * sizeX * sizeY - y1) / sizeY;
-			// std::cout << path[i + 1] << " " << x1 << " " << y1 << " " << z1 << std::endl;
 
 			int dz = z - z1;
 			int dx = x - x1;
@@ -214,7 +215,6 @@ void removeEdge(nodes_t& nodes, int x, int y, int z, int dir) {
 
 void removeNode(nodes_t& nodes, int x, int y, int z) {
 	int size = nodes.size();
-	// std::cout << "remove node " << z * size * size + x * size + y << std::endl; 
 	for(int dir = 0; dir < 6; dir++) {
 		removeEdge(nodes, x, y, z, dir);
 	}
@@ -243,67 +243,86 @@ int main()
 {
 	nodes_t data;
 	int size;
+	bool mode3D = false;
 	int sizeZ = 1;
-	int maxSize = 50;
+	int maxSize = 150;
 	int minSize = 2;
-	int repeats = 100;
-	for(int k = minSize; k < maxSize; k += 1) {
-		size = k;
-		// sizeZ = k;
-		srand (time(NULL));
-		data.clear();
+	int step = 2;
 
-		for(int i = 0; i < size; i++) {
-			std::vector<std::vector<node> > row;
-			for(int j = 0; j < size; j++) {
-				std::vector<node> tmp;
-				for(int k = 0; k < sizeZ; k++) {
-					bool left = j - 1 >= 0;
-					bool right = j < size - 1;
-					bool up = i - 1 >= 0;
-					bool down = i < size - 1;
-					bool forward = k < sizeZ - 1;
-					bool backward = k - 1 >= 0;
-					tmp.push_back(node(i, j, k, left, right, up, down, forward, backward));
-				}
-				row.push_back(tmp);
-			}
-			data.push_back(row);
-		}
-		std::vector<node> startVertexes;
-		for(int j = 0; j < sizeZ; j++){
+	int minRepeats = 25;
+	int maxRepeats = 26;
+	int repStep = 25;
+
+	std::ofstream file;
+	file.open("output.txt");
+	for(int r = minRepeats; r < maxRepeats; r+=repStep) {
+		for(int k = minSize; k < maxSize; k += step) {
+			size = k;
+			if(mode3D)
+				sizeZ = k;
+			srand (time(NULL));
+			data.clear();
+
 			for(int i = 0; i < size; i++) {
-				startVertexes.push_back(data[i][0][j]);
-			}
-		}
-		std::vector<int> results;
-		int count = 0;
-		for(int i = 0; i < repeats; i++) {			
-
-			while(isPathExists(data, startVertexes, 0)) {
-				count++;
-				while(1) {
-					int x = rand() % size; // 0..size-1
-					int y = rand() % size; // 0..size-1
-					int z = rand() % sizeZ; // 0..size-1
-					if(data[x][y][z].left || data[x][y][z].right || data[x][y][z].up || data[x][y][z].down ||
-						data[x][y][z].forward || data[x][y][z].backward) {
-						removeNode(data, x, y, z);
-						break;
+				std::vector<std::vector<node> > row;
+				for(int j = 0; j < size; j++) {
+					std::vector<node> tmp;
+					for(int k = 0; k < sizeZ; k++) {
+						bool left = j - 1 >= 0;
+						bool right = j < size - 1;
+						bool up = i - 1 >= 0;
+						bool down = i < size - 1;
+						bool forward = k < sizeZ - 1;
+						bool backward = k - 1 >= 0;
+						tmp.push_back(node(i, j, k, left, right, up, down, forward, backward));
 					}
+					row.push_back(tmp);
 				}
-
+				data.push_back(row);
 			}
-			results.push_back(count);
-			count = 0;
-			resetData(size, data);			
-		}
-		int sum = 0;
-		for(int i = 0; i < results.size(); i++) {
-			sum += results[i];
-		}
+			std::vector<node> startVertexes;
+			for(int j = 0; j < sizeZ; j++){
+				for(int i = 0; i < size; i++) {
+					startVertexes.push_back(data[i][0][j]);
+				}
+			}
+			std::vector<int> results;
+			int count = 0;
 
-		std::cout <<  "(" << size << ";" << (1.0 - (double)(sum / results.size()) / (double)(size * size * sizeZ)) << ") ";
+
+
+			for(int i = 0; i < r; i++) {			
+
+				while(isPathExists(data, startVertexes, 0)) {
+					count++;
+					while(1) {
+						int x = rand() % size; // 0..size-1
+						int y = rand() % size; // 0..size-1
+						int z = rand() % sizeZ; // 0..size-1
+						if(data[x][y][z].left || data[x][y][z].right || data[x][y][z].up || data[x][y][z].down ||
+							data[x][y][z].forward || data[x][y][z].backward) {
+							removeNode(data, x, y, z);
+							break;
+						}
+					}
+
+				}
+				results.push_back(count);
+				count = 0;
+				resetData(size, data);			
+			}
+			int sum = 0;
+			for(int i = 0; i < results.size(); i++) {
+				sum += results[i];
+			}
+
+			// printf("(%d;%d)", size, (1.0 - (double)(sum / results.size()) / (double)(size * size * sizeZ)));
+			double value = (1.0 - (double)(sum / results.size()) / (double)(size * size * sizeZ));
+			// file <<  "(" << size << ";" << value << ") ";
+			file << size << " " << value << "\n";
+		}
+		file << "---\n";
 	}
+	file.close();		
 	return 0;
 }
